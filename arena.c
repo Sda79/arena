@@ -20,11 +20,18 @@ struct Arena {
   Region *head;
 };
 
+/*
+ Creates a new region.
+  - capacity : number of char to allocate for the region.
+ Example :
+  I want 2 char. (2 - 1/ 8) + 1 = 1 uintptr_t
+  I want 64 char (64 - 1 / 8) + 1 = 8 uintptr_t
+*/
 Region *new_region(unsigned long long capacity) {
   Region *r;
 
-  unsigned long long region_size = sizeof(Region) + capacity * sizeof(uintptr_t);
-  printf("Allocating %lu + %llu * %lu = %llu bytes to region.\n", sizeof(Region), capacity, sizeof(uintptr_t), region_size);
+  unsigned long long region_size = sizeof(Region) + ((capacity - 1) / sizeof(uintptr_t)) + 1;
+  printf("Allocating %lu + ((%llu - 1) / %lu) + 1 = %llu char to region.\n", sizeof(Region), capacity, sizeof(uintptr_t), region_size);
   r = (Region*) malloc(region_size);
   
   r->next = NULL;
@@ -69,7 +76,7 @@ void *arena_alloc(Arena *arena, unsigned long long size) {
     cursor = cursor->next;
   }
 
-  void *result = &cursor->data[cursor->count];
+  void *result = &cursor->data[(cursor->count) / sizeof(uintptr_t)];
   cursor->count += size;
   return result;
 }
@@ -85,16 +92,21 @@ void free_arena(Arena *arena) {
 
 int main() {
   Arena a = {0};
-  char *str = (char*) arena_alloc(&a, 1073741824);
+  char *str1 = (char*) arena_alloc(&a, 16);
+  char *str2 = (char*) arena_alloc(&a, 16);
+  
+  strcpy(str2, "1234567890");
+  strcpy(str1, "abcdefghijklmnopqrstuvwxyz");
+  printf("str1 = %s\n", str1);
+  printf("str2 = %s\n", str2);
+  printf("&str1 = %p\n", str1);
+  printf("&str2 = %p\n", str2);
+  
+  /* for (int i = 0; i < 1073741824; ++i) { */
+  /*   str[i] = 'a'; */
+  /* } */
 
-  strcpy(str, "incroyable");
-  printf("str = %s\n", str);
-
-  for (int i = 0; i < 1073741824; ++i) {
-    str[i] = 'a';
-  }
-
-  printf("%s\n", str);
+  /* printf("%s\n", str); */
   
   free_arena(&a);
   
